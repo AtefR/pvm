@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint-and-fast-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fish php-cli shellcheck zsh
+
+      - name: Syntax checks
+        run: |
+          bash -n bin/pvm install.sh bootstrap.sh test/*.sh
+          fish -n share/pvm/init.fish
+
+      - name: ShellCheck
+        run: |
+          shellcheck bin/pvm install.sh bootstrap.sh test/*.sh
+
+      - name: Fast tests
+        run: |
+          test/shim_resolution.sh
+          test/composer.sh
+          test/bootstrap.sh
+
+  integration-macos:
+    runs-on: macos-latest
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install fish shellcheck
+
+      - name: Syntax checks
+        run: |
+          bash -n bin/pvm install.sh bootstrap.sh test/*.sh
+          fish -n share/pvm/init.fish
+
+      - name: ShellCheck
+        run: |
+          shellcheck bin/pvm install.sh bootstrap.sh test/*.sh
+
+      - name: Integration tests
+        run: |
+          test/extensions.sh
+          test/shell_hooks.sh

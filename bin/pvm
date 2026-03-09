@@ -386,7 +386,10 @@ extension_is_builtin_for_version() {
   formula_installed "$formula" || return 1
   prefix="$(formula_prefix "$formula")"
   [[ -x "$prefix/bin/php" ]] || return 1
-  "$prefix/bin/php" -n -m 2>/dev/null | grep -Fxq "$extension_name"
+  "$prefix/bin/php" -n -m 2>/dev/null |
+    tr '[:upper:]' '[:lower:]' |
+    grep -Ev '^[[:space:]]*$|^\[' |
+    grep -Fxq "$extension_name"
 }
 
 file_matches_disabled_extension() {

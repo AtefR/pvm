@@ -13,6 +13,7 @@ mkdir -p "$HOME"
 PVM_BIN="$PROJECT_ROOT/bin/pvm"
 TARGET_VERSION=""
 UNINSTALLED_VERSION=""
+BUILTIN_EXTENSION=""
 
 for candidate in 8.4 8.3 8.2; do
   if "$PVM_BIN" exec "$candidate" php -v >/dev/null 2>&1; then
@@ -34,6 +35,19 @@ while IFS= read -r candidate; do
   fi
 done < <("$PVM_BIN" list-remote | awk '{print $1}')
 
+BUILTIN_EXTENSION="$(
+  "$PVM_BIN" exec "$TARGET_VERSION" php -n -m |
+    tr '[:upper:]' '[:lower:]' |
+    grep -Ev '^[[:space:]]*$|^\[' |
+    grep -E '^(date|filter|hash|json|libxml|openssl|pcre|random|reflection|session|spl|standard|tokenizer|zlib)$' |
+    head -n 1
+)"
+
+[[ -n "$BUILTIN_EXTENSION" ]] || {
+  printf 'no built-in extension candidate found for PHP %s\n' "$TARGET_VERSION" >&2
+  exit 1
+}
+
 "$PVM_BIN" ext disable opcache --version "$TARGET_VERSION" >/dev/null
 list_output="$("$PVM_BIN" ext list --version "$TARGET_VERSION")"
 [[ "$list_output" == *"disabled: opcache"* ]] || {
@@ -52,13 +66,13 @@ if ! "$PVM_BIN" exec "$TARGET_VERSION" php -m | grep -Fxq 'Zend OPcache'; then
   exit 1
 fi
 
-if "$PVM_BIN" ext disable json --version "$TARGET_VERSION" >/dev/null 2>&1; then
-  printf 'expected built-in json extension disable to fail for PHP %s\n' "$TARGET_VERSION" >&2
+if "$PVM_BIN" ext disable "$BUILTIN_EXTENSION" --version "$TARGET_VERSION" >/dev/null 2>&1; then
+  printf 'expected built-in %s extension disable to fail for PHP %s\n' "$BUILTIN_EXTENSION" "$TARGET_VERSION" >&2
   exit 1
 fi
 
-if ! "$PVM_BIN" exec "$TARGET_VERSION" php -m | grep -Fxq 'json'; then
-  printf 'expected built-in json extension to remain available for PHP %s\n' "$TARGET_VERSION" >&2
+if ! "$PVM_BIN" exec "$TARGET_VERSION" php -n -m | tr '[:upper:]' '[:lower:]' | grep -Fxq "$BUILTIN_EXTENSION"; then
+  printf 'expected built-in %s extension to remain available for PHP %s\n' "$BUILTIN_EXTENSION" "$TARGET_VERSION" >&2
   exit 1
 fi
 

@@ -41,7 +41,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install fish shellcheck
+          brew install fish php@8.4 shellcheck
 
       - name: Syntax checks
         run: |

@@ -6,6 +6,7 @@
 
 - install and uninstall PHP versions with Homebrew
 - switch PHP per shell, per project, or globally
+- link the global PHP version through Homebrew so external tools like Valet can see it
 - support Bash, Zsh, and Fish
 - use `.php-version` files for project-local selection
 - keep `php`, `phpize`, `php-config`, `pecl`, and related tools stable through shims
@@ -125,6 +126,8 @@ pvm doctor
 3. `~/.pvm/default-version`
 4. system PHP outside `pvm` shims
 
+`pvm global <version>` also updates Homebrew's linked `php` so non-shell-aware tools can use the same version. `pvm global --unset` removes those Homebrew PHP links.
+
 ## Commands
 
 - `pvm install <version> [--use]`
@@ -169,7 +172,7 @@ That helps identify broken `php.ini` or `conf.d` entries.
 ## Development
 
 ```bash
-bash -n bin/pvm install.sh bootstrap.sh test/*.sh
-shellcheck bin/pvm install.sh bootstrap.sh test/*.sh
+bash -n bin/pvm libexec/*.sh install.sh bootstrap.sh test/*.sh
+shellcheck bin/pvm libexec/*.sh install.sh bootstrap.sh test/*.sh
 test/smoke.sh
 ```

@@ -12,22 +12,25 @@ export PVM_USER_BIN_DIR="$HOME/.local/bin"
 mkdir -p "$HOME"
 
 PHP_RUNTIME="${PHP_RUNTIME:-}"
-if [[ -z "$PHP_RUNTIME" ]]; then
-  PHP_RUNTIME="$(command -v php || true)"
-fi
-if [[ -z "$PHP_RUNTIME" ]]; then
-  for candidate in \
-    /home/linuxbrew/.linuxbrew/opt/php/bin/php \
-    /home/linuxbrew/.linuxbrew/opt/php@8.4/bin/php \
-    /home/linuxbrew/.linuxbrew/opt/php@8.3/bin/php \
-    /home/linuxbrew/.linuxbrew/opt/php@8.2/bin/php
-  do
-    if [[ -x "$candidate" ]]; then
-      PHP_RUNTIME="$candidate"
-      break
-    fi
-  done
-fi
+for candidate in \
+  "${PHP_RUNTIME:-}" \
+  "$(command -v php 2>/dev/null || true)" \
+  /home/linuxbrew/.linuxbrew/opt/php/bin/php \
+  /home/linuxbrew/.linuxbrew/opt/php@8.4/bin/php \
+  /home/linuxbrew/.linuxbrew/opt/php@8.3/bin/php \
+  /home/linuxbrew/.linuxbrew/opt/php@8.2/bin/php
+do
+  [[ -n "$candidate" && -x "$candidate" ]] || continue
+  case "$candidate" in
+    */.pvm/shims/*)
+      continue
+      ;;
+  esac
+  if "$candidate" -v >/dev/null 2>&1; then
+    PHP_RUNTIME="$candidate"
+    break
+  fi
+done
 [[ -n "$PHP_RUNTIME" ]] || {
   printf 'no php runtime available for composer test\n' >&2
   exit 1

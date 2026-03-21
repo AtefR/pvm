@@ -53,6 +53,41 @@ TOOL
   chmod +x "\$tool_path"
 }
 
+link_formula_tools() {
+  local formula="\$1"
+  local prefix="\$MOCK_ROOT/opt/\$formula"
+  local tool_name
+
+  for tool_name in php phpize php-config phpdbg php-cgi pecl phar phar.phar; do
+    if [[ -x "\$prefix/bin/\$tool_name" ]]; then
+      ln -sfn "\$prefix/bin/\$tool_name" "\$MOCK_ROOT/bin/\$tool_name"
+    fi
+  done
+
+  if [[ -x "\$prefix/sbin/php-fpm" ]]; then
+    ln -sfn "\$prefix/sbin/php-fpm" "\$MOCK_ROOT/bin/php-fpm"
+  fi
+
+  if [[ -x "\$prefix/bin/pear" ]]; then
+    ln -sfn "\$prefix/bin/pear" "\$MOCK_ROOT/bin/pear"
+  else
+    rm -f "\$MOCK_ROOT/bin/pear"
+  fi
+}
+
+unlink_formula_tools() {
+  local formula="\$1"
+  local prefix="\$MOCK_ROOT/opt/\$formula"
+  local target
+
+  for target in "\$MOCK_ROOT/bin"/*; do
+    [[ -L "\$target" ]] || continue
+    if [[ "\$(readlink "\$target")" == "\$prefix/"* ]]; then
+      rm -f "\$target"
+    fi
+  done
+}
+
 case "\${1:-}" in
   shellenv)
     printf "export HOMEBREW_PREFIX='%s'\\n" "\$MOCK_ROOT"
@@ -107,8 +142,17 @@ case "\${1:-}" in
     ;;
   uninstall)
     formula="\${2:?missing formula}"
+    unlink_formula_tools "\$formula"
     rm -f "\$STATE_DIR/\$formula.installed"
     rm -rf "\$MOCK_ROOT/opt/\$formula"
+    ;;
+  link)
+    formula="\${@: -1}"
+    link_formula_tools "\$formula"
+    ;;
+  unlink)
+    formula="\${2:?missing formula}"
+    unlink_formula_tools "\$formula"
     ;;
   --version)
     printf 'Homebrew mock\\n'
@@ -175,6 +219,8 @@ test -L "$PVM_DIR/shims/php"
 "$PVM_BIN" global 8.4 >/dev/null
 global_php_path="$("$PVM_BIN" which php)"
 assert_eq "$global_php_path" "$MOCK_ROOT/opt/php@8.4/bin/php" "global version should resolve through shim"
+assert_eq "$(command -v php)" "$MOCK_BIN/php" "global version should be linked for external tools"
+assert_eq "$("$MOCK_BIN/php")" "mock-php@8.4-php" "linked php should point at the global Homebrew formula"
 
 PROJECT_DIR="$TEST_ROOT/project"
 mkdir -p "$PROJECT_DIR"
@@ -189,6 +235,7 @@ rm -f "$PROJECT_DIR/.php-version"
 "$PVM_BIN" global --unset >/dev/null
 system_php_path="$("$PVM_BIN" which php)"
 assert_eq "$system_php_path" "$SYSTEM_BIN/php" "shim should fall back to system php when no pvm version is selected"
+assert_eq "$(command -v php)" "$SYSTEM_BIN/php" "clearing the global version should remove Homebrew php links"
 
 printf '8.3\n' >"$PROJECT_DIR/.php-version"
 assert_fails "does not provide 'pear'" bash -lc "cd '$PROJECT_DIR' && PATH='$PVM_DIR/shims:$PATH' '$PVM_BIN' which pear"

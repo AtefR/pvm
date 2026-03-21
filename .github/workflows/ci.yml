@@ -19,12 +19,12 @@ jobs:
 
       - name: Syntax checks
         run: |
-          bash -n bin/pvm install.sh bootstrap.sh test/*.sh
+          bash -n bin/pvm libexec/*.sh install.sh bootstrap.sh test/*.sh
           fish -n share/pvm/init.fish
 
       - name: ShellCheck
         run: |
-          shellcheck bin/pvm install.sh bootstrap.sh test/*.sh
+          shellcheck bin/pvm libexec/*.sh install.sh bootstrap.sh test/*.sh
 
       - name: Fast tests
         run: |
@@ -45,12 +45,12 @@ jobs:
 
       - name: Syntax checks
         run: |
-          bash -n bin/pvm install.sh bootstrap.sh test/*.sh
+          bash -n bin/pvm libexec/*.sh install.sh bootstrap.sh test/*.sh
           fish -n share/pvm/init.fish
 
       - name: ShellCheck
         run: |
-          shellcheck bin/pvm install.sh bootstrap.sh test/*.sh
+          shellcheck bin/pvm libexec/*.sh install.sh bootstrap.sh test/*.sh
 
       - name: Integration tests
         run: |
